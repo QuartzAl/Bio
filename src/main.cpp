@@ -1,18 +1,47 @@
-#include <Arduino.h>
+/**
+ * @file player-littlefs-i2s.ino
+ * @brief example using the LittleFS library
+ *
+ * @author Phil Schatzmann
+ * @copyright GPLv3
+ */
 
-// put function declarations here:
-int myFunction(int, int);
+#include "AudioTools.h"
+#include "AudioLibs/AudioSourceLittleFS.h"
+#include "AudioCodecs/CodecMP3Helix.h"
 
-void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+const char *startFilePath = "/";
+const char *ext = "mp3";
+
+AudioSourceLittleFS source(startFilePath, ext);
+I2SStream i2s;
+MP3DecoderHelix decoder;
+AudioPlayer player(source, i2s, decoder);
+
+void printMetaData(MetaDataType type, const char *str, int len)
+{
+  Serial.print("==> ");
+  Serial.print(toStr(type));
+  Serial.print(": ");
+  Serial.println(str);
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
+void setup()
+{
+  Serial.begin(115200);
+  AudioLogger::instance().begin(Serial, AudioLogger::Info);
+
+  // setup output
+  auto cfg = i2s.defaultConfig(TX_MODE);
+  i2s.begin(cfg);
+
+  // setup player
+  // source.setFileFilter("*Bob Dylan*");
+  player.setMetadataCallback(printMetaData);
+  player.begin();
 }
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+void loop()
+{
+  player.copy();
 }
